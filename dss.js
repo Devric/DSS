@@ -372,6 +372,11 @@ dss.parser('description', function(i, line, block, file){
   return line;
 });
 
+// Desctibe parsing a section id, for grouping
+dss.parser('section', function(i, line, block, file){
+  return line;
+});
+
 // Describe parsing a state
 dss.parser('state', function(i, line, block, file){
   var state = line.split(' - ');
@@ -391,9 +396,32 @@ dss.parser('markup', function(i, line, block, file){
       markupLength = nextParserIndex > -1 ? nextParserIndex - i : block.length,
       markup = block.split('').splice(i, markupLength).join('');
 
-  markup = (function(markup){
+  markup = htmlParser(markup,i,line,block,file)
+
+  return {
+    example: markup,
+    escaped: markup.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  };
+});
+
+// parsing html markup for templating the section
+dss.parser('html', function(i, line, block, file){
+  // find the next instance of a parser (if there is one based on the @ symbol)
+  // in order to isolate the current multi-line parser
+  var nextParserIndex = block.indexOf('* @', i+1),
+      markupLength = nextParserIndex > -1 ? nextParserIndex - i : block.length,
+      html = block.split('').splice(i, markupLength).join('');
+
+  html = htmlParser(html,i,line,block,file)
+
+  return {
+    html: html
+  };
+})
+
+function htmlParser(html,i,line,block,file) {
     var ret = [],
-        lines = markup.split('\n');
+        lines = html.split('\n');
 
     lines.forEach(function(line){
       var pattern = '*',
@@ -406,18 +434,12 @@ dss.parser('markup', function(i, line, block, file){
       if (lines.length <= 2)
         line = dss.trim(line);
 
-      if (line && line != '@markup')
+      if (line && line != '@html')
         ret.push(line);
 
     });
     return ret.join('\n');
-  })(markup);
-
-  return {
-    example: markup,
-    escaped: markup.replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  };
-});
+}
 
 // Module exports
 if(typeof exports !== 'undefined'){
